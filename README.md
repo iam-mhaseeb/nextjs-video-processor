@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Video Processor
 
-## Getting Started
+Video Processor is a web application designed to allow users to combine a foreground video with a background video using browser-based video processing. The application uses FFmpeg to handle video manipulation directly in the browser, eliminating the need for any local software installation.
 
-First, run the development server:
+## Screenshot
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+![Video Processor](ss.png)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Motivation
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The project was developed to provide an accessible and easy-to-use tool for combining and processing videos without the need for advanced video editing software. It aims to help content creators, marketers, and anyone needing to overlay videos quickly and efficiently, right from their web browser.
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+## Features
+- Overlay a foreground video onto a background video.
 
-## Learn More
+- Option to mute the audio of either the foreground or background video.
 
-To learn more about Next.js, take a look at the following resources:
+- Operates directly in the browser using FFmpeg, without requiring local software.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Simple and intuitive user interface for video uploads and settings configuration.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+## Installation 
+To set up the project locally:
+ 
+1. Clone the repository using `git clone <repository-url>`.
+ 
+2. Navigate to the project directory with `cd video-processor`.
+ 
+3. Install the necessary dependencies with `npm install`.
 
-## Deploy on Vercel
+## Usage
+1. Upload your foreground and background videos using the file input fields provided.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+2. Adjust audio settings if needed, by muting either the foreground or background video.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+3. Click "Process Video" to combine the videos. The resulting video will be available for download once processing is complete.
+
+## Development
+To run the development server:
+ 
+- Execute `npm run dev`.
+
+To build the application for production:
+ 
+- Run `npm run build`.
+
+To start the production server:
+ 
+- Use `npm run start`.
+
+## Contributing 
+Contributions are welcome. You can open issues or submit pull requests for improvements or bug fixes.
+
+## License 
+This project is licensed under the MIT License. See the LICENSE file for details.
