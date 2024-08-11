@@ -10,8 +10,10 @@ import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile, toBlobURL } from "@ffmpeg/util";
 
 export default function Home() {
-  const [youtubeVideo, setYoutubeVideo] = useState<File | null>(null);
-  const [pexelsVideo, setPexelsVideo] = useState<File | null>(null);
+  const [foregroundVideo, setForegroundVideo] = useState<File | null>(null);
+  const [backgroundVideo, setBackgroundVideo] = useState<File | null>(null);
+  const [muteForeground, setMuteForeground] = useState<boolean>(false);
+  const [muteBackground, setMuteBackground] = useState<boolean>(false);
   const [processing, setProcessing] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
@@ -47,48 +49,58 @@ export default function Home() {
     e.preventDefault();
     setProcessing(true);
     setError(null);
-  
+
     if (!loaded) {
       setError("FFmpeg not loaded. Please refresh the page and try again.");
       setProcessing(false);
       return;
     }
-  
-    if (!youtubeVideo || !pexelsVideo) {
+
+    if (!foregroundVideo || !backgroundVideo) {
       setError("Please upload both videos.");
       setProcessing(false);
       return;
     }
-  
+
     try {
       const ffmpeg = ffmpegRef.current;
-  
+
       // Read videos as Uint8Array
-      const youtubeVideoData = new Uint8Array(await youtubeVideo.arrayBuffer());
-      const pexelsVideoData = new Uint8Array(await pexelsVideo.arrayBuffer());
-  
-      console.log('Writing YouTube video to FFmpeg FS');
-      await ffmpeg.writeFile("youtube.mp4", youtubeVideoData);
-  
-      console.log('Writing Pexels video to FFmpeg FS');
-      await ffmpeg.writeFile("pexels.mp4", pexelsVideoData);
-  
-      // Simple filter for debugging
+      const foregroundVideoData = new Uint8Array(await foregroundVideo.arrayBuffer());
+      const backgroundVideoData = new Uint8Array(await backgroundVideo.arrayBuffer());
+
+      console.log('Writing foreground video to FFmpeg FS');
+      await ffmpeg.writeFile("foreground.mp4", foregroundVideoData);
+
+      console.log('Writing background video to FFmpeg FS');
+      await ffmpeg.writeFile("background.mp4", backgroundVideoData);
+
+      // Construct FFmpeg command to center the foreground video
       console.log('Running FFmpeg command');
-      try {
-        await ffmpeg.exec([
-          "-i", "pexels.mp4",
-          "-i", "youtube.mp4",
-          "-filter_complex",
-          "[1:v]scale=iw:ih,format=rgba[fg];[0:v][fg]overlay=(W-w)/2:(H-h)/2:shortest=1",
-          "-c:a", "copy",
-          "output.mp4"
-        ]);
-      } catch (error) {
-        console.error("FFmpeg execution error:", error);
-      }
-      
-  
+      const filterComplex = [
+        "[1:v]scale=iw:ih[fg];[0:v][fg]overlay=(W-w)/2:(H-h)/2:shortest=1"
+      ];
+
+      // Adjust audio filters based on mute options
+      const audioFilters = [];
+      if (muteForeground) audioFilters.push("[0:a]anull[a]");
+      if (muteBackground) audioFilters.push("[1:a]anull[a]");
+
+      const audioFilterString = audioFilters.length > 0 ? audioFilters.join(';') : "";
+
+      const command = [
+        "-i", "background.mp4",
+        "-i", "foreground.mp4",
+        "-filter_complex", filterComplex.join(';') + (audioFilterString ? `;${audioFilterString}` : ""),
+        "-map", "[a]",
+        "output.mp4"
+      ];
+
+      // Print command for debugging
+      console.log('FFmpeg command:', command.join(' '));
+
+      await ffmpeg.exec(command);
+
       // Check if output file was created successfully
       console.log('Reading output video from FFmpeg FS');
       const data = await ffmpeg.readFile("output.mp4");
@@ -97,13 +109,13 @@ export default function Home() {
       link.href = url;
       link.download = "output.mp4";
       link.click();
-  
+
       // Clean up
       URL.revokeObjectURL(url);
-      await ffmpeg.deleteFile("youtube.mp4");
-      await ffmpeg.deleteFile("pexels.mp4");
+      await ffmpeg.deleteFile("foreground.mp4");
+      await ffmpeg.deleteFile("background.mp4");
       await ffmpeg.deleteFile("output.mp4");
-  
+
     } catch (error) {
       console.error("Error processing video:", error);
       setError(`An error occurred: ${(error as Error).message}. Please try again.`);
@@ -112,8 +124,6 @@ export default function Home() {
       setProgress(0);
     }
   };
-  
-  
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -121,24 +131,44 @@ export default function Home() {
         <h1 className="text-2xl font-bold mb-4">Video Processor</h1>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <Label htmlFor="youtube-file">YouTube Video File:</Label>
+            <Label htmlFor="foreground-file">Foreground Video File:</Label>
             <Input
-              id="youtube-file"
+              id="foreground-file"
               type="file"
               accept="video/*"
-              onChange={(e) => handleFileChange(e, setYoutubeVideo)}
+              onChange={(e) => handleFileChange(e, setForegroundVideo)}
               required
               className="mt-1"
             />
           </div>
           <div className="mb-4">
-            <Label htmlFor="pexels-file">Pexels Video File:</Label>
+            <Label htmlFor="background-file">Background Video File:</Label>
             <Input
-              id="pexels-file"
+              id="background-file"
               type="file"
               accept="video/*"
-              onChange={(e) => handleFileChange(e, setPexelsVideo)}
+              onChange={(e) => handleFileChange(e, setBackgroundVideo)}
               required
+              className="mt-1"
+            />
+          </div>
+          <div className="mb-4">
+            <Label htmlFor="mute-foreground">Mute Foreground Video:</Label>
+            <input
+              id="mute-foreground"
+              type="checkbox"
+              checked={muteForeground}
+              onChange={() => setMuteForeground(!muteForeground)}
+              className="mt-1"
+            />
+          </div>
+          <div className="mb-4">
+            <Label htmlFor="mute-background">Mute Background Video:</Label>
+            <input
+              id="mute-background"
+              type="checkbox"
+              checked={muteBackground}
+              onChange={() => setMuteBackground(!muteBackground)}
               className="mt-1"
             />
           </div>
