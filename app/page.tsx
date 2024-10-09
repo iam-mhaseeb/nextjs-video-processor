@@ -12,6 +12,7 @@ import { fetchFile, toBlobURL } from "@ffmpeg/util";
 export default function Home() {
   const [foregroundVideo, setForegroundVideo] = useState<File | null>(null);
   const [backgroundVideo, setBackgroundVideo] = useState<File | null>(null);
+  const [backgroundMusic, setBackgroundMusic] = useState<File | null>(null); // Add MP3 input state
   const [muteForeground, setMuteForeground] = useState<boolean>(false);
   const [muteBackground, setMuteBackground] = useState<boolean>(false);
   const [processing, setProcessing] = useState<boolean>(false);
@@ -75,6 +76,12 @@ export default function Home() {
       console.log('Writing background video to FFmpeg FS');
       await ffmpeg.writeFile("background.mp4", backgroundVideoData);
 
+      if (backgroundMusic) {
+        console.log('Writing background music to FFmpeg FS');
+        const backgroundMusicData = new Uint8Array(await backgroundMusic.arrayBuffer());
+        await ffmpeg.writeFile("music.mp3", backgroundMusicData);
+      }
+
       // Construct FFmpeg command to center the foreground video
       console.log('Running FFmpeg command');
       const filterComplex = [
@@ -83,18 +90,30 @@ export default function Home() {
 
       // Adjust audio filters based on mute options
       const audioFilters = [];
-      if (muteForeground) audioFilters.push("[0:a]anull[a]");
-      if (muteBackground) audioFilters.push("[1:a]anull[a]");
+      if (muteForeground) audioFilters.push("[1:a]anull");
+      if (muteBackground) audioFilters.push("[0:a]anull");
 
-      const audioFilterString = audioFilters.length > 0 ? audioFilters.join(';') : "";
-
-      const command = [
+      let command = [
         "-i", "background.mp4",
         "-i", "foreground.mp4",
-        "-filter_complex", filterComplex.join(';') + (audioFilterString ? `;${audioFilterString}` : ""),
-        "-map", "[a]",
-        "output.mp4"
+        "-filter_complex", filterComplex.join(';')
       ];
+
+      if (backgroundMusic) {
+        command.push("-i", "music.mp3"); // Add background music input
+      }
+
+      if (audioFilters.length > 0) {
+        const audioFilterString = audioFilters.join(';');
+        command.push("-filter_complex", `amix=inputs=1;${audioFilterString}`);
+      }
+
+      command.push(
+        "-map", "0:v",       // Map the background video
+        "-map", "2:a",       // Map the background music as audio
+        "-shortest",         // Stops the video when the shortest stream ends
+        "output.mp4"
+      );
 
       // Print command for debugging
       console.log('FFmpeg command:', command.join(' '));
@@ -114,6 +133,9 @@ export default function Home() {
       URL.revokeObjectURL(url);
       await ffmpeg.deleteFile("foreground.mp4");
       await ffmpeg.deleteFile("background.mp4");
+      if (backgroundMusic) {
+        await ffmpeg.deleteFile("music.mp3");
+      }
       await ffmpeg.deleteFile("output.mp4");
 
     } catch (error) {
@@ -149,6 +171,16 @@ export default function Home() {
               accept="video/*"
               onChange={(e) => handleFileChange(e, setBackgroundVideo)}
               required
+              className="mt-1"
+            />
+          </div>
+          <div className="mb-4">
+            <Label htmlFor="music-file">Background Music File (MP3):</Label>
+            <Input
+              id="music-file"
+              type="file"
+              accept="audio/mp3"
+              onChange={(e) => handleFileChange(e, setBackgroundMusic)} // Add background music input
               className="mt-1"
             />
           </div>
