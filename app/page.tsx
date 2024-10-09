@@ -12,9 +12,10 @@ import { fetchFile, toBlobURL } from "@ffmpeg/util";
 export default function Home() {
   const [foregroundVideo, setForegroundVideo] = useState<File | null>(null);
   const [backgroundVideo, setBackgroundVideo] = useState<File | null>(null);
-  const [backgroundMusic, setBackgroundMusic] = useState<File | null>(null); // Add MP3 input state
+  const [backgroundMusic, setBackgroundMusic] = useState<File | null>(null); // MP3 input state
   const [muteForeground, setMuteForeground] = useState<boolean>(false);
   const [muteBackground, setMuteBackground] = useState<boolean>(false);
+  const [addWaveform, setAddWaveform] = useState<boolean>(false); // Option to add waveform
   const [processing, setProcessing] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +40,7 @@ export default function Home() {
       wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
     });
     setLoaded(true);
-  }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<File | null>>) => {
     const file = e.target.files ? e.target.files[0] : null;
@@ -93,15 +94,25 @@ export default function Home() {
       if (muteForeground) audioFilters.push("[1:a]anull");
       if (muteBackground) audioFilters.push("[0:a]anull");
 
+      // Add waveform if enabled
+      if (backgroundMusic && addWaveform) {
+        filterComplex.push(
+          "[2:a]showwaves=s=1280x200:mode=cline:colors=cyan[waveform];[0:v][waveform]overlay=W-w:main_h-overlay_h"
+        );
+      }
+
       let command = [
         "-i", "background.mp4",
-        "-i", "foreground.mp4",
-        "-filter_complex", filterComplex.join(';')
+        "-i", "foreground.mp4"
       ];
 
       if (backgroundMusic) {
         command.push("-i", "music.mp3"); // Add background music input
       }
+
+      command.push(
+        "-filter_complex", filterComplex.join(';')
+      );
 
       if (audioFilters.length > 0) {
         const audioFilterString = audioFilters.join(';');
@@ -201,6 +212,16 @@ export default function Home() {
               type="checkbox"
               checked={muteBackground}
               onChange={() => setMuteBackground(!muteBackground)}
+              className="mt-1"
+            />
+          </div>
+          <div className="mb-4">
+            <Label htmlFor="add-waveform">Add Audio Waveform:</Label>
+            <input
+              id="add-waveform"
+              type="checkbox"
+              checked={addWaveform}
+              onChange={() => setAddWaveform(!addWaveform)} // Toggle waveform
               className="mt-1"
             />
           </div>
