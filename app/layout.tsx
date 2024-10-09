@@ -5,7 +5,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Video Processor Tool",
+  title: "Video Processor Tool - Overlay video on a video with ease",
   description: "A tool to process videos by overlaying a foreground video on top of a background video. Customize audio settings and handle video uploads easily with our user-friendly interface.",
 };
 
